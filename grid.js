@@ -16,8 +16,8 @@ canvas.width = rect.width;
 canvas.height = rect.height;
 
 canvas.style.position = "absolute";
-canvas.style.left = (window.scrollX + rect.left) + "px";
-canvas.style.top = (window.scrollY + rect.top) + "px";
+canvas.style.left = (window.scrollX + rect.left + 2) + "px";
+canvas.style.top = (window.scrollY + rect.top + 2) + "px";
 canvas.style.pointerEvents = "auto";
 canvas.style.zIndex = "5";
 
