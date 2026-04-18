@@ -5,7 +5,7 @@ let canvas = document.createElement("canvas");
 let ctx = canvas.getContext("2d");
 
 /* =============================
-   BASIC DATA
+   SETTINGS
 ============================= */
 
 let size = 45;
@@ -71,18 +71,13 @@ btn.style.fontWeight = "bold";
 btn.style.cursor = "pointer";
 btn.style.transition = "0.2s";
 
-btn.onmouseenter = function(){
-btn.style.background = "#666";
-};
-
-btn.onmouseleave = function(){
-refreshButtons();
-};
+btn.onmouseenter = function(){ btn.style.background = "#666"; };
+btn.onmouseleave = function(){ refreshButtons(); };
 
 });
 
 /* =============================
-   CANVAS POSITION
+   POSITION (UP + LEFT FIX)
 ============================= */
 
 function resizeCanvas(){
@@ -93,8 +88,11 @@ canvas.width = rect.width;
 canvas.height = rect.height;
 
 canvas.style.position = "absolute";
-canvas.style.left = (window.scrollX + rect.left + 6) + "px";
-canvas.style.top = (window.scrollY + rect.top) + "px";
+
+/* W GÓRĘ I W LEWO */
+canvas.style.left = (window.scrollX + rect.left + 2) + "px";
+canvas.style.top  = (window.scrollY + rect.top - 2) + "px";
+
 canvas.style.zIndex = "5";
 canvas.style.cursor = "crosshair";
 
@@ -141,7 +139,6 @@ document.getElementById("usBtn").onclick = function(){
 
 currentTeam = "us";
 currentColor = "#2d8cff";
-
 arrowMode = false;
 flagMode = false;
 
@@ -155,7 +152,6 @@ document.getElementById("enemyBtn").onclick = function(){
 
 currentTeam = "enemy";
 currentColor = "#ff4444";
-
 arrowMode = false;
 flagMode = false;
 
@@ -276,11 +272,11 @@ for(let a of arrows){
 drawArrow(a.x1,a.y1,a.x2,a.y2,a.color);
 }
 
-/* FLAGS */
+/* FLAGS BIGGER + COLOR */
 
 for(let f of flags){
 
-ctx.font = "18px Arial";
+ctx.font = "28px Arial";
 ctx.fillStyle = f.color;
 ctx.fillText("🚩",f.x,f.y);
 
@@ -289,38 +285,32 @@ ctx.font = "10px Arial";
 let w = ctx.measureText(f.name).width;
 
 ctx.fillStyle = "rgba(0,0,0,0.75)";
-ctx.fillRect(f.x+18,f.y-12,w+8,14);
+ctx.fillRect(f.x+28,f.y-16,w+8,14);
 
 ctx.fillStyle = "yellow";
-ctx.fillText(f.name,f.x+22,f.y-2);
+ctx.fillText(f.name,f.x+32,f.y-5);
 
 }
 
-/* TANKS */
+/* TANKS AS ICONS */
 
 for(let t of tanks){
 
-ctx.beginPath();
-ctx.arc(t.x,t.y,8,0,Math.PI*2);
+ctx.font = "18px Arial";
 ctx.fillStyle = t.color;
-ctx.fill();
 
-ctx.strokeStyle = "black";
-ctx.stroke();
+/* czołg emoji */
+ctx.fillText("🛡️", t.x-8, t.y+6);
 
 ctx.font = "10px Arial";
 
 let w = ctx.measureText(t.name).width;
 
 ctx.fillStyle = "rgba(0,0,0,0.75)";
-ctx.fillRect(t.x+10,t.y-18,w+8,14);
-
-ctx.strokeStyle = "black";
-ctx.lineWidth = 2;
-ctx.strokeText(t.name,t.x+13,t.y-8);
+ctx.fillRect(t.x+12,t.y-18,w+8,14);
 
 ctx.fillStyle = "yellow";
-ctx.fillText(t.name,t.x+13,t.y-8);
+ctx.fillText(t.name,t.x+15,t.y-8);
 
 }
 
@@ -366,7 +356,7 @@ let t=tanks[i];
 let dx=x-t.x;
 let dy=y-t.y;
 
-if(Math.sqrt(dx*dx+dy*dy)<10) return t;
+if(Math.sqrt(dx*dx+dy*dy)<15) return t;
 
 }
 
@@ -390,7 +380,6 @@ let y = e.clientY - rect.top;
 if(flagMode){
 
 let flagName = prompt("Flag name:");
-
 if(flagName==null) flagName="Spawn";
 
 flags.push({
@@ -445,7 +434,6 @@ let found = getTank(x,y);
 if(!found){
 
 let tankName = prompt("Tank name:");
-
 if(tankName==null) tankName="";
 
 tanks.push({
@@ -462,7 +450,7 @@ drawAll();
 };
 
 /* =============================
-   DRAG TANKS
+   DRAG
 ============================= */
 
 canvas.onmousedown = function(e){
@@ -504,3 +492,4 @@ refreshButtons();
 resizeCanvas();
 
 }
+
