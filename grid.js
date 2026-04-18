@@ -15,16 +15,18 @@ let currentTeam = "us";
 let currentColor = "#2d8cff";
 
 let arrowMode = false;
+let flagMode = false;
 
 let tanks = [];
 let arrows = [];
+let flags = [];
 
 let selectedTank = null;
 let dragging = false;
 let arrowStart = null;
 
 /* =============================
-   PANEL V2
+   PANEL
 ============================= */
 
 let panel = document.createElement("div");
@@ -42,6 +44,7 @@ panel.innerHTML = `
 <button id="usBtn">US</button>
 <button id="enemyBtn">ENEMY</button>
 <button id="arrowBtn">ARROW</button>
+<button id="flagBtn">FLAG</button>
 <button id="deleteBtn">DELETE</button>
 <button id="saveBtn">SAVE</button>
 <button id="loadBtn">LOAD</button>
@@ -103,6 +106,7 @@ document.body.appendChild(canvas);
 
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("scroll", resizeCanvas);
+
 setTimeout(resizeCanvas,300);
 
 /* =============================
@@ -122,7 +126,10 @@ document.getElementById("enemyBtn").style.background =
 (currentTeam=="enemy") ? "#ff4444" : "#2c2c2c";
 
 document.getElementById("arrowBtn").style.background =
-(arrowMode) ? "#e0a000" : "#2c2c2c";
+(arrowMode) ? "#ffaa00" : "#2c2c2c";
+
+document.getElementById("flagBtn").style.background =
+(flagMode) ? "#33bb55" : "#2c2c2c";
 
 }
 
@@ -134,7 +141,9 @@ document.getElementById("usBtn").onclick = function(){
 
 currentTeam = "us";
 currentColor = "#2d8cff";
+
 arrowMode = false;
+flagMode = false;
 
 document.getElementById("colorPick").value = currentColor;
 
@@ -146,7 +155,9 @@ document.getElementById("enemyBtn").onclick = function(){
 
 currentTeam = "enemy";
 currentColor = "#ff4444";
+
 arrowMode = false;
+flagMode = false;
 
 document.getElementById("colorPick").value = currentColor;
 
@@ -157,7 +168,17 @@ refreshButtons();
 document.getElementById("arrowBtn").onclick = function(){
 
 arrowMode = true;
+flagMode = false;
 arrowStart = null;
+
+refreshButtons();
+
+};
+
+document.getElementById("flagBtn").onclick = function(){
+
+flagMode = true;
+arrowMode = false;
 
 refreshButtons();
 
@@ -170,6 +191,7 @@ currentColor = this.value;
 document.getElementById("deleteBtn").onclick = function(){
 
 if(arrows.length>0) arrows.pop();
+else if(flags.length>0) flags.pop();
 else if(tanks.length>0) tanks.pop();
 
 drawAll();
@@ -180,7 +202,8 @@ document.getElementById("saveBtn").onclick = function(){
 
 localStorage.setItem("minimapSave", JSON.stringify({
 tanks:tanks,
-arrows:arrows
+arrows:arrows,
+flags:flags
 }));
 
 alert("Saved");
@@ -197,6 +220,7 @@ let save = JSON.parse(data);
 
 tanks = save.tanks || [];
 arrows = save.arrows || [];
+flags = save.flags || [];
 
 drawAll();
 
@@ -252,6 +276,26 @@ for(let a of arrows){
 drawArrow(a.x1,a.y1,a.x2,a.y2,a.color);
 }
 
+/* FLAGS */
+
+for(let f of flags){
+
+ctx.font = "18px Arial";
+ctx.fillStyle = f.color;
+ctx.fillText("🚩",f.x,f.y);
+
+ctx.font = "10px Arial";
+
+let w = ctx.measureText(f.name).width;
+
+ctx.fillStyle = "rgba(0,0,0,0.75)";
+ctx.fillRect(f.x+18,f.y-12,w+8,14);
+
+ctx.fillStyle = "yellow";
+ctx.fillText(f.name,f.x+22,f.y-2);
+
+}
+
 /* TANKS */
 
 for(let t of tanks){
@@ -264,14 +308,12 @@ ctx.fill();
 ctx.strokeStyle = "black";
 ctx.stroke();
 
-/* NAME */
-
 ctx.font = "10px Arial";
 
-let width = ctx.measureText(t.name).width;
+let w = ctx.measureText(t.name).width;
 
 ctx.fillStyle = "rgba(0,0,0,0.75)";
-ctx.fillRect(t.x+10,t.y-18,width+8,14);
+ctx.fillRect(t.x+10,t.y-18,w+8,14);
 
 ctx.strokeStyle = "black";
 ctx.lineWidth = 2;
@@ -343,6 +385,29 @@ let rect = canvas.getBoundingClientRect();
 let x = e.clientX - rect.left;
 let y = e.clientY - rect.top;
 
+/* FLAG MODE */
+
+if(flagMode){
+
+let flagName = prompt("Flag name:");
+
+if(flagName==null) flagName="Spawn";
+
+flags.push({
+x:x,
+y:y,
+color:currentColor,
+name:flagName
+});
+
+flagMode = false;
+
+refreshButtons();
+drawAll();
+return;
+
+}
+
 /* ARROW MODE */
 
 if(arrowMode){
@@ -373,7 +438,7 @@ return;
 
 }
 
-/* ADD TANK */
+/* TANK MODE */
 
 let found = getTank(x,y);
 
@@ -397,7 +462,7 @@ drawAll();
 };
 
 /* =============================
-   DRAG
+   DRAG TANKS
 ============================= */
 
 canvas.onmousedown = function(e){
@@ -409,7 +474,7 @@ e.clientX - rect.left,
 e.clientY - rect.top
 );
 
-if(selectedTank) dragging = true;
+if(selectedTank) dragging=true;
 
 };
 
@@ -428,8 +493,8 @@ drawAll();
 
 canvas.onmouseup = function(){
 
-dragging = false;
-selectedTank = null;
+dragging=false;
+selectedTank=null;
 
 };
 
