@@ -4,9 +4,7 @@ let img = document.querySelector("img");
 let canvas = document.createElement("canvas");
 let ctx = canvas.getContext("2d");
 
-/* =========================
-   ALIGNMENT FIX
-========================= */
+/* ================= ALIGN ================= */
 
 function resizeCanvas() {
 
@@ -18,12 +16,10 @@ canvas.height = rect.height;
 canvas.style.position = "absolute";
 canvas.style.left = (window.scrollX + rect.left + 4) + "px";
 canvas.style.top = (window.scrollY + rect.top) + "px";
-canvas.style.pointerEvents = "auto";
 canvas.style.zIndex = "5";
 canvas.style.cursor = "crosshair";
 
 drawAll();
-
 }
 
 document.body.appendChild(canvas);
@@ -32,13 +28,12 @@ window.addEventListener("load", resizeCanvas);
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("scroll", resizeCanvas);
 
-setTimeout(resizeCanvas, 300);
+setTimeout(resizeCanvas,300);
 
 /* ================= PANEL ================= */
 
 let panel = document.createElement("div");
 panel.style.margin = "10px";
-panel.style.color = "white";
 
 panel.innerHTML = `
 <button id="usBtn">US</button>
@@ -52,6 +47,29 @@ panel.innerHTML = `
 
 document.body.insertBefore(panel, document.body.firstChild);
 
+/* ================= BUTTON STYLE ================= */
+
+let buttons = document.querySelectorAll("button");
+
+buttons.forEach(btn => {
+
+btn.style.padding = "8px 14px";
+btn.style.margin = "3px";
+btn.style.border = "1px solid #444";
+btn.style.background = "#ffffff";
+btn.style.cursor = "pointer";
+btn.style.transition = "0.15s";
+
+btn.onmouseenter = function(){
+btn.style.background = "#bbbbbb";
+};
+
+btn.onmouseleave = function(){
+refreshButtons();
+};
+
+});
+
 /* ================= DATA ================= */
 
 let size = 45;
@@ -63,60 +81,91 @@ let currentTeam = "us";
 let tanks = [];
 let arrows = [];
 
-let selectedTank = null;
-let dragging = false;
-
 let arrowMode = false;
 let arrowStart = null;
 
+let selectedTank = null;
+let dragging = false;
+
+/* ================= ACTIVE BUTTONS ================= */
+
+function refreshButtons(){
+
+document.getElementById("usBtn").style.background =
+(currentTeam=="us") ? "#55aaff" : "#ffffff";
+
+document.getElementById("enemyBtn").style.background =
+(currentTeam=="enemy") ? "#ff6666" : "#ffffff";
+
+document.getElementById("arrowBtn").style.background =
+(arrowMode) ? "#ffff66" : "#ffffff";
+
+}
+
 /* ================= BUTTONS ================= */
 
-document.getElementById("usBtn").onclick = function () {
+document.getElementById("usBtn").onclick = function(){
+
 currentTeam = "us";
 currentColor = "#0000ff";
+arrowMode = false;
+
 document.getElementById("colorPick").value = "#0000ff";
+
+refreshButtons();
+
 };
 
-document.getElementById("enemyBtn").onclick = function () {
+document.getElementById("enemyBtn").onclick = function(){
+
 currentTeam = "enemy";
 currentColor = "#ff0000";
+arrowMode = false;
+
 document.getElementById("colorPick").value = "#ff0000";
+
+refreshButtons();
+
 };
 
-document.getElementById("arrowBtn").onclick = function () {
+document.getElementById("arrowBtn").onclick = function(){
+
 arrowMode = true;
 arrowStart = null;
+
+refreshButtons();
+
 };
 
-document.getElementById("colorPick").oninput = function () {
+document.getElementById("colorPick").oninput = function(){
 currentColor = this.value;
 };
 
-document.getElementById("deleteBtn").onclick = function () {
+document.getElementById("deleteBtn").onclick = function(){
 
-if (arrows.length > 0) arrows.pop();
-else if (tanks.length > 0) tanks.pop();
+if(arrows.length>0) arrows.pop();
+else if(tanks.length>0) tanks.pop();
 
 drawAll();
 
 };
 
-document.getElementById("saveBtn").onclick = function () {
+document.getElementById("saveBtn").onclick = function(){
 
-localStorage.setItem("minimapSave", JSON.stringify({
-tanks: tanks,
-arrows: arrows
+localStorage.setItem("minimapSave",JSON.stringify({
+tanks:tanks,
+arrows:arrows
 }));
 
 alert("Saved");
 
 };
 
-document.getElementById("loadBtn").onclick = function () {
+document.getElementById("loadBtn").onclick = function(){
 
 let data = localStorage.getItem("minimapSave");
 
-if (data) {
+if(data){
 
 let save = JSON.parse(data);
 
@@ -131,7 +180,7 @@ drawAll();
 
 /* ================= DRAW ================= */
 
-function drawAll() {
+function drawAll(){
 
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -140,14 +189,14 @@ ctx.clearRect(0,0,canvas.width,canvas.height);
 ctx.strokeStyle = "rgba(255,255,255,0.22)";
 ctx.lineWidth = 1;
 
-for (let x=0; x<=canvas.width; x+=size) {
+for(let x=0;x<=canvas.width;x+=size){
 ctx.beginPath();
 ctx.moveTo(x,0);
 ctx.lineTo(x,canvas.height);
 ctx.stroke();
 }
 
-for (let y=0; y<=canvas.height; y+=size) {
+for(let y=0;y<=canvas.height;y+=size){
 ctx.beginPath();
 ctx.moveTo(0,y);
 ctx.lineTo(canvas.width,y);
@@ -161,23 +210,23 @@ ctx.font = fontSize + "px Arial";
 
 let letters = "ABCDEFGHIJK";
 
-for (let r=0;r<11;r++) {
+for(let r=0;r<11;r++){
 ctx.fillText(letters[r],3,r*size+22);
 }
 
-for (let c=1;c<=20;c++) {
+for(let c=1;c<=20;c++){
 ctx.fillText(c,(c-1)*size+18,8);
 }
 
 /* ARROWS */
 
-for (let a of arrows) {
+for(let a of arrows){
 drawArrow(a.x1,a.y1,a.x2,a.y2,a.color);
 }
 
 /* TANKS */
 
-for (let t of tanks) {
+for(let t of tanks){
 
 ctx.beginPath();
 ctx.arc(t.x,t.y,8,0,Math.PI*2);
@@ -186,8 +235,6 @@ ctx.fill();
 
 ctx.strokeStyle = "black";
 ctx.stroke();
-
-/* NAME */
 
 ctx.font = "10px Arial";
 
@@ -244,9 +291,7 @@ let t=tanks[i];
 let dx=x-t.x;
 let dy=y-t.y;
 
-if(Math.sqrt(dx*dx+dy*dy)<10){
-return t;
-}
+if(Math.sqrt(dx*dx+dy*dy)<10) return t;
 
 }
 
@@ -262,8 +307,6 @@ let rect = canvas.getBoundingClientRect();
 
 let x = e.clientX - rect.left;
 let y = e.clientY - rect.top;
-
-/* ARROW MODE */
 
 if(arrowMode){
 
@@ -282,7 +325,9 @@ color:currentColor
 });
 
 arrowStart = null;
-arrowMode = false; /* wraca do normalnego trybu */
+arrowMode = false;
+
+refreshButtons();
 drawAll();
 
 }
@@ -291,21 +336,18 @@ return;
 
 }
 
-/* NORMAL TANK */
-
 let found = getTank(x,y);
 
 if(!found){
 
 let tankName = prompt("Tank name:");
 
-if(tankName == null) tankName = "";
+if(tankName==null) tankName="";
 
 tanks.push({
 x:x,
 y:y,
 color:currentColor,
-team:currentTeam,
 name:tankName
 });
 
@@ -326,7 +368,7 @@ e.clientX-rect.left,
 e.clientY-rect.top
 );
 
-if(selectedTank) dragging = true;
+if(selectedTank) dragging=true;
 
 };
 
@@ -345,11 +387,12 @@ drawAll();
 
 canvas.onmouseup = function(){
 
-dragging = false;
-selectedTank = null;
+dragging=false;
+selectedTank=null;
 
 };
 
+refreshButtons();
 resizeCanvas();
 
 }
