@@ -5,7 +5,7 @@ let canvas = document.createElement("canvas");
 let ctx = canvas.getContext("2d");
 
 /* =========================
-   IDEAL ALIGNMENT FIX
+   ALIGNMENT FIX
 ========================= */
 
 function resizeCanvas() {
@@ -16,10 +16,11 @@ canvas.width = rect.width;
 canvas.height = rect.height;
 
 canvas.style.position = "absolute";
-canvas.style.left = (window.scrollX + rect.left + 2) + "px";
-canvas.style.top = (window.scrollY + rect.top + 2) + "px";
+canvas.style.left = (window.scrollX + rect.left + 4) + "px";
+canvas.style.top = (window.scrollY + rect.top) + "px";
 canvas.style.pointerEvents = "auto";
 canvas.style.zIndex = "5";
+canvas.style.cursor = "crosshair";
 
 drawAll();
 
@@ -73,15 +74,18 @@ let arrowStart = null;
 document.getElementById("usBtn").onclick = function () {
 currentTeam = "us";
 currentColor = "#0000ff";
+document.getElementById("colorPick").value = "#0000ff";
 };
 
 document.getElementById("enemyBtn").onclick = function () {
 currentTeam = "enemy";
 currentColor = "#ff0000";
+document.getElementById("colorPick").value = "#ff0000";
 };
 
 document.getElementById("arrowBtn").onclick = function () {
-arrowMode = !arrowMode;
+arrowMode = true;
+arrowStart = null;
 };
 
 document.getElementById("colorPick").oninput = function () {
@@ -183,7 +187,7 @@ ctx.fill();
 ctx.strokeStyle = "black";
 ctx.stroke();
 
-/* YELLOW NAME */
+/* NAME */
 
 ctx.font = "10px Arial";
 
@@ -259,6 +263,8 @@ let rect = canvas.getBoundingClientRect();
 let x = e.clientX - rect.left;
 let y = e.clientY - rect.top;
 
+/* ARROW MODE */
+
 if(arrowMode){
 
 if(!arrowStart){
@@ -276,6 +282,7 @@ color:currentColor
 });
 
 arrowStart = null;
+arrowMode = false; /* wraca do normalnego trybu */
 drawAll();
 
 }
@@ -283,6 +290,8 @@ drawAll();
 return;
 
 }
+
+/* NORMAL TANK */
 
 let found = getTank(x,y);
 
