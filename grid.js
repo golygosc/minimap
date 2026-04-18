@@ -8,9 +8,15 @@ let ctx = canvas.getContext("2d");
    RESPONSIVE CANVAS / FIX
 ========================= */
 
-function resizeCanvas() {
-    canvas.width = img.clientWidth;
-    canvas.height = img.clientHeight;
+let rect = img.getBoundingClientRect();
+
+canvas.style.position = "absolute";
+canvas.style.left = (window.scrollX + rect.left) + "px";
+canvas.style.top  = (window.scrollY + rect.top) + "px";
+
+drawAll();
+
+}
 
     canvas.style.position = "absolute";
     canvas.style.left = img.offsetLeft + "px";
