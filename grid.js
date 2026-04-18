@@ -8,16 +8,23 @@ let ctx = canvas.getContext("2d");
    RESPONSIVE CANVAS / FIX
 ========================= */
 
+function resizeCanvas() {
+
+canvas.width = img.clientWidth;
+canvas.height = img.clientHeight;
+
 let rect = img.getBoundingClientRect();
 
-canvas.style.position = "absolute";
-canvas.style.left = (window.scrollX + rect.left) + "px";
-canvas.style.top  = (window.scrollY + rect.top) + "px";
+canvas.style.position = "fixed";
+canvas.style.left = rect.left + "px";
+canvas.style.top  = rect.top + "px";
+canvas.style.margin = "0";
+canvas.style.padding = "0";
+canvas.style.zIndex = "5";
 
 drawAll();
 
 }
-
     canvas.style.position = "absolute";
     canvas.style.left = img.offsetLeft + "px";
     canvas.style.top = (img.offsetTop + 47) + "px";
