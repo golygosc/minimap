@@ -14,7 +14,7 @@ function resizeCanvas() {
 
     canvas.style.position = "absolute";
     canvas.style.left = img.offsetLeft + "px";
-    canvas.style.top = (img.offsetTop + 50) + "px";
+    canvas.style.top = (img.offsetTop + 47) + "px";
     canvas.style.cursor = "crosshair";
 
     drawAll();
