@@ -5,42 +5,35 @@ let canvas = document.createElement("canvas");
 let ctx = canvas.getContext("2d");
 
 /* =========================
-   RESPONSIVE CANVAS / FIX
+   IDEAL ALIGNMENT FIX
 ========================= */
 
 function resizeCanvas() {
 
-canvas.width = img.clientWidth;
-canvas.height = img.clientHeight;
-
 let rect = img.getBoundingClientRect();
 
-canvas.style.position = "fixed";
-canvas.style.left = rect.left + "px";
-canvas.style.top  = rect.top + "px";
-canvas.style.margin = "0";
-canvas.style.padding = "0";
+canvas.width = rect.width;
+canvas.height = rect.height;
+
+canvas.style.position = "absolute";
+canvas.style.left = (window.scrollX + rect.left) + "px";
+canvas.style.top = (window.scrollY + rect.top) + "px";
+canvas.style.pointerEvents = "auto";
 canvas.style.zIndex = "5";
 
 drawAll();
 
 }
-    canvas.style.position = "absolute";
-    canvas.style.left = img.offsetLeft + "px";
-    canvas.style.top = (img.offsetTop + 47) + "px";
-    canvas.style.cursor = "crosshair";
-
-    drawAll();
-}
 
 document.body.appendChild(canvas);
 
-img.onload = resizeCanvas;
-window.onresize = resizeCanvas;
+window.addEventListener("load", resizeCanvas);
+window.addEventListener("resize", resizeCanvas);
+window.addEventListener("scroll", resizeCanvas);
 
-/* =========================
-   PANEL
-========================= */
+setTimeout(resizeCanvas, 300);
+
+/* ================= PANEL ================= */
 
 let panel = document.createElement("div");
 panel.style.margin = "10px";
@@ -58,9 +51,7 @@ panel.innerHTML = `
 
 document.body.insertBefore(panel, document.body.firstChild);
 
-/* =========================
-   DATA
-========================= */
+/* ================= DATA ================= */
 
 let size = 45;
 let fontSize = 7;
@@ -77,282 +68,277 @@ let dragging = false;
 let arrowMode = false;
 let arrowStart = null;
 
-/* =========================
-   BUTTONS
-========================= */
+/* ================= BUTTONS ================= */
 
 document.getElementById("usBtn").onclick = function () {
-    currentTeam = "us";
-    currentColor = "#0000ff";
-    document.getElementById("colorPick").value = "#0000ff";
+currentTeam = "us";
+currentColor = "#0000ff";
 };
 
 document.getElementById("enemyBtn").onclick = function () {
-    currentTeam = "enemy";
-    currentColor = "#ff0000";
-    document.getElementById("colorPick").value = "#ff0000";
+currentTeam = "enemy";
+currentColor = "#ff0000";
 };
 
 document.getElementById("arrowBtn").onclick = function () {
-    arrowMode = !arrowMode;
+arrowMode = !arrowMode;
 };
 
 document.getElementById("colorPick").oninput = function () {
-    currentColor = this.value;
+currentColor = this.value;
 };
 
 document.getElementById("deleteBtn").onclick = function () {
-    if (arrows.length > 0) {
-        arrows.pop();
-    } else if (tanks.length > 0) {
-        tanks.pop();
-    }
-    drawAll();
+
+if (arrows.length > 0) arrows.pop();
+else if (tanks.length > 0) tanks.pop();
+
+drawAll();
+
 };
 
 document.getElementById("saveBtn").onclick = function () {
 
-    localStorage.setItem("minimapSave", JSON.stringify({
-        tanks: tanks,
-        arrows: arrows
-    }));
+localStorage.setItem("minimapSave", JSON.stringify({
+tanks: tanks,
+arrows: arrows
+}));
 
-    alert("Saved!");
+alert("Saved");
+
 };
 
 document.getElementById("loadBtn").onclick = function () {
 
-    let data = localStorage.getItem("minimapSave");
+let data = localStorage.getItem("minimapSave");
 
-    if (data) {
-        let save = JSON.parse(data);
+if (data) {
 
-        tanks = save.tanks || [];
-        arrows = save.arrows || [];
+let save = JSON.parse(data);
 
-        drawAll();
-        alert("Loaded!");
-    }
+tanks = save.tanks || [];
+arrows = save.arrows || [];
+
+drawAll();
+
+}
+
 };
 
-/* =========================
-   DRAW ALL
-========================= */
+/* ================= DRAW ================= */
 
 function drawAll() {
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    /* GRID */
-    ctx.strokeStyle = "rgba(255,255,255,0.25)";
-    ctx.lineWidth = 1;
+/* GRID */
 
-    for (let x = 0; x <= canvas.width; x += size) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-    }
+ctx.strokeStyle = "rgba(255,255,255,0.22)";
+ctx.lineWidth = 1;
 
-    for (let y = 0; y <= canvas.height; y += size) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-    }
+for (let x=0; x<=canvas.width; x+=size) {
+ctx.beginPath();
+ctx.moveTo(x,0);
+ctx.lineTo(x,canvas.height);
+ctx.stroke();
+}
 
-    /* COORDINATES */
-    ctx.fillStyle = "red";
-    ctx.font = fontSize + "px Arial";
+for (let y=0; y<=canvas.height; y+=size) {
+ctx.beginPath();
+ctx.moveTo(0,y);
+ctx.lineTo(canvas.width,y);
+ctx.stroke();
+}
 
-    let letters = "ABCDEFGHIJK";
+/* COORDS */
 
-    for (let r = 0; r < 11; r++) {
-        ctx.fillText(letters[r], 3, r * size + 22);
-    }
+ctx.fillStyle = "red";
+ctx.font = fontSize + "px Arial";
 
-    for (let c = 1; c <= 20; c++) {
-        ctx.fillText(c, (c - 1) * size + 18, 8);
-    }
+let letters = "ABCDEFGHIJK";
 
-    /* ARROWS */
-    for (let a of arrows) {
-        drawArrow(a.x1, a.y1, a.x2, a.y2, a.color);
-    }
+for (let r=0;r<11;r++) {
+ctx.fillText(letters[r],3,r*size+22);
+}
 
-    /* TANKS */
-    for (let t of tanks) {
+for (let c=1;c<=20;c++) {
+ctx.fillText(c,(c-1)*size+18,8);
+}
 
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = t.color;
-        ctx.fill();
+/* ARROWS */
 
-        ctx.strokeStyle = "black";
-        ctx.stroke();
+for (let a of arrows) {
+drawArrow(a.x1,a.y1,a.x2,a.y2,a.color);
+}
 
-        /* =========================
-           YELLOW NAME + SHIELD
-        ========================= */
+/* TANKS */
 
-        ctx.font = "10px Arial";
+for (let t of tanks) {
 
-        let text = t.name;
-        let width = ctx.measureText(text).width;
+ctx.beginPath();
+ctx.arc(t.x,t.y,8,0,Math.PI*2);
+ctx.fillStyle = t.color;
+ctx.fill();
 
-        /* black background */
-        ctx.fillStyle = "rgba(0,0,0,0.80)";
-        ctx.fillRect(t.x + 10, t.y - 18, width + 6, 14);
-
-        /* yellow text */
-    ctx.lineWidth = 2;
 ctx.strokeStyle = "black";
-ctx.strokeText(text, t.x + 13, t.y - 8);
+ctx.stroke();
+
+/* YELLOW NAME */
+
+ctx.font = "10px Arial";
+
+let text = t.name;
+let width = ctx.measureText(text).width;
+
+ctx.fillStyle = "rgba(0,0,0,0.75)";
+ctx.fillRect(t.x+10,t.y-18,width+8,14);
+
+ctx.lineWidth = 2;
+ctx.strokeStyle = "black";
+ctx.strokeText(text,t.x+13,t.y-8);
 
 ctx.fillStyle = "yellow";
-ctx.fillText(text, t.x + 13, t.y - 8);
-    }
+ctx.fillText(text,t.x+13,t.y-8);
+
 }
 
-/* =========================
-   DRAW ARROW
-========================= */
-
-function drawArrow(x1, y1, x2, y2, color) {
-
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-
-    let angle = Math.atan2(y2 - y1, x2 - x1);
-
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(
-        x2 - 12 * Math.cos(angle - 0.4),
-        y2 - 12 * Math.sin(angle - 0.4)
-    );
-    ctx.lineTo(
-        x2 - 12 * Math.cos(angle + 0.4),
-        y2 - 12 * Math.sin(angle + 0.4)
-    );
-    ctx.closePath();
-
-    ctx.fillStyle = color;
-    ctx.fill();
 }
 
-/* =========================
-   FIND TANK
-========================= */
+/* ================= ARROW ================= */
 
-function getTank(x, y) {
+function drawArrow(x1,y1,x2,y2,color){
 
-    for (let i = tanks.length - 1; i >= 0; i--) {
+ctx.strokeStyle = color;
+ctx.lineWidth = 3;
 
-        let t = tanks[i];
+ctx.beginPath();
+ctx.moveTo(x1,y1);
+ctx.lineTo(x2,y2);
+ctx.stroke();
 
-        let dx = x - t.x;
-        let dy = y - t.y;
+let angle = Math.atan2(y2-y1,x2-x1);
 
-        if (Math.sqrt(dx * dx + dy * dy) < 10) {
-            return t;
-        }
-    }
+ctx.beginPath();
+ctx.moveTo(x2,y2);
+ctx.lineTo(x2-12*Math.cos(angle-0.4),y2-12*Math.sin(angle-0.4));
+ctx.lineTo(x2-12*Math.cos(angle+0.4),y2-12*Math.sin(angle+0.4));
+ctx.closePath();
 
-    return null;
+ctx.fillStyle = color;
+ctx.fill();
+
 }
 
-/* =========================
-   CLICK
-========================= */
+/* ================= FIND ================= */
 
-canvas.onclick = function (e) {
+function getTank(x,y){
 
-    let rect = canvas.getBoundingClientRect();
+for(let i=tanks.length-1;i>=0;i--){
 
-    let x = e.clientX - rect.left;
-    let y = e.clientY - rect.top;
+let t=tanks[i];
 
-    /* ARROW MODE */
-    if (arrowMode) {
+let dx=x-t.x;
+let dy=y-t.y;
 
-        if (!arrowStart) {
+if(Math.sqrt(dx*dx+dy*dy)<10){
+return t;
+}
 
-            arrowStart = { x: x, y: y };
+}
 
-        } else {
+return null;
 
-            arrows.push({
-                x1: arrowStart.x,
-                y1: arrowStart.y,
-                x2: x,
-                y2: y,
-                color: currentColor
-            });
+}
 
-            arrowStart = null;
-            drawAll();
-        }
+/* ================= CLICK ================= */
 
-        return;
-    }
+canvas.onclick = function(e){
 
-    let found = getTank(x, y);
+let rect = canvas.getBoundingClientRect();
 
-    if (!found) {
+let x = e.clientX - rect.left;
+let y = e.clientY - rect.top;
 
-        let tankName = prompt("Tank name:");
+if(arrowMode){
 
-        if (tankName == null) tankName = "";
+if(!arrowStart){
 
-        tanks.push({
-            x: x,
-            y: y,
-            color: currentColor,
-            team: currentTeam,
-            name: tankName
-        });
+arrowStart = {x:x,y:y};
 
-        drawAll();
-    }
+}else{
+
+arrows.push({
+x1:arrowStart.x,
+y1:arrowStart.y,
+x2:x,
+y2:y,
+color:currentColor
+});
+
+arrowStart = null;
+drawAll();
+
+}
+
+return;
+
+}
+
+let found = getTank(x,y);
+
+if(!found){
+
+let tankName = prompt("Tank name:");
+
+if(tankName == null) tankName = "";
+
+tanks.push({
+x:x,
+y:y,
+color:currentColor,
+team:currentTeam,
+name:tankName
+});
+
+drawAll();
+
+}
+
 };
 
-/* =========================
-   DRAGGING
-========================= */
+/* ================= DRAG ================= */
 
-canvas.onmousedown = function (e) {
+canvas.onmousedown = function(e){
 
-    let rect = canvas.getBoundingClientRect();
+let rect = canvas.getBoundingClientRect();
 
-    selectedTank = getTank(
-        e.clientX - rect.left,
-        e.clientY - rect.top
-    );
+selectedTank = getTank(
+e.clientX-rect.left,
+e.clientY-rect.top
+);
 
-    if (selectedTank) dragging = true;
+if(selectedTank) dragging = true;
+
 };
 
-canvas.onmousemove = function (e) {
+canvas.onmousemove = function(e){
 
-    if (!dragging || !selectedTank) return;
+if(!dragging || !selectedTank) return;
 
-    let rect = canvas.getBoundingClientRect();
+let rect = canvas.getBoundingClientRect();
 
-    selectedTank.x = e.clientX - rect.left;
-    selectedTank.y = e.clientY - rect.top;
+selectedTank.x = e.clientX-rect.left;
+selectedTank.y = e.clientY-rect.top;
 
-    drawAll();
+drawAll();
+
 };
 
-canvas.onmouseup = function () {
-    dragging = false;
-    selectedTank = null;
+canvas.onmouseup = function(){
+
+dragging = false;
+selectedTank = null;
+
 };
 
 resizeCanvas();
