@@ -192,8 +192,12 @@ function drawAll() {
         ctx.fillRect(t.x + 10, t.y - 18, width + 6, 14);
 
         /* yellow text */
-        ctx.fillStyle = "#ffff00";
-        ctx.fillText(text, t.x + 13, t.y - 8);
+    ctx.lineWidth = 2;
+ctx.strokeStyle = "black";
+ctx.strokeText(text, t.x + 13, t.y - 8);
+
+ctx.fillStyle = "yellow";
+ctx.fillText(text, t.x + 13, t.y - 8);
     }
 }
 
