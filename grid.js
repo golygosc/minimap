@@ -4,64 +4,72 @@ let img = document.querySelector("img");
 let canvas = document.createElement("canvas");
 let ctx = canvas.getContext("2d");
 
-/* ================= ALIGN ================= */
+/* =============================
+   BASIC DATA
+============================= */
 
-function resizeCanvas() {
+let size = 45;
+let fontSize = 7;
 
-let rect = img.getBoundingClientRect();
+let currentTeam = "us";
+let currentColor = "#2d8cff";
 
-canvas.width = rect.width;
-canvas.height = rect.height;
+let arrowMode = false;
 
-canvas.style.position = "absolute";
-canvas.style.left = (window.scrollX + rect.left + 4) + "px";
-canvas.style.top = (window.scrollY + rect.top) + "px";
-canvas.style.zIndex = "5";
-canvas.style.cursor = "crosshair";
+let tanks = [];
+let arrows = [];
 
-drawAll();
-}
+let selectedTank = null;
+let dragging = false;
+let arrowStart = null;
 
-document.body.appendChild(canvas);
-
-window.addEventListener("load", resizeCanvas);
-window.addEventListener("resize", resizeCanvas);
-window.addEventListener("scroll", resizeCanvas);
-
-setTimeout(resizeCanvas,300);
-
-/* ================= PANEL ================= */
+/* =============================
+   PANEL V2
+============================= */
 
 let panel = document.createElement("div");
+
 panel.style.margin = "10px";
+panel.style.padding = "10px";
+panel.style.background = "#1f1f1f";
+panel.style.border = "1px solid #444";
+panel.style.borderRadius = "12px";
+panel.style.display = "inline-block";
+panel.style.boxShadow = "0 0 12px rgba(0,0,0,0.45)";
+panel.style.fontFamily = "Arial";
 
 panel.innerHTML = `
 <button id="usBtn">US</button>
 <button id="enemyBtn">ENEMY</button>
 <button id="arrowBtn">ARROW</button>
-<button id="deleteBtn">DELETE LAST</button>
+<button id="deleteBtn">DELETE</button>
 <button id="saveBtn">SAVE</button>
 <button id="loadBtn">LOAD</button>
-<input type="color" id="colorPick" value="#0000ff">
+<input type="color" id="colorPick" value="#2d8cff">
 `;
 
 document.body.insertBefore(panel, document.body.firstChild);
 
-/* ================= BUTTON STYLE ================= */
+/* =============================
+   BUTTON STYLE
+============================= */
 
 let buttons = document.querySelectorAll("button");
 
 buttons.forEach(btn => {
 
-btn.style.padding = "8px 14px";
-btn.style.margin = "3px";
-btn.style.border = "1px solid #444";
-btn.style.background = "#ffffff";
+btn.style.padding = "10px 16px";
+btn.style.margin = "4px";
+btn.style.border = "none";
+btn.style.borderRadius = "8px";
+btn.style.background = "#2c2c2c";
+btn.style.color = "white";
+btn.style.fontWeight = "bold";
 btn.style.cursor = "pointer";
-btn.style.transition = "0.15s";
+btn.style.transition = "0.2s";
 
 btn.onmouseenter = function(){
-btn.style.background = "#bbbbbb";
+btn.style.background = "#666";
 };
 
 btn.onmouseleave = function(){
@@ -70,47 +78,65 @@ refreshButtons();
 
 });
 
-/* ================= DATA ================= */
+/* =============================
+   CANVAS POSITION
+============================= */
 
-let size = 45;
-let fontSize = 7;
+function resizeCanvas(){
 
-let currentColor = "#0000ff";
-let currentTeam = "us";
+let rect = img.getBoundingClientRect();
 
-let tanks = [];
-let arrows = [];
+canvas.width = rect.width;
+canvas.height = rect.height;
 
-let arrowMode = false;
-let arrowStart = null;
+canvas.style.position = "absolute";
+canvas.style.left = (window.scrollX + rect.left + 6) + "px";
+canvas.style.top = (window.scrollY + rect.top) + "px";
+canvas.style.zIndex = "5";
+canvas.style.cursor = "crosshair";
 
-let selectedTank = null;
-let dragging = false;
-
-/* ================= ACTIVE BUTTONS ================= */
-
-function refreshButtons(){
-
-document.getElementById("usBtn").style.background =
-(currentTeam=="us") ? "#55aaff" : "#ffffff";
-
-document.getElementById("enemyBtn").style.background =
-(currentTeam=="enemy") ? "#ff6666" : "#ffffff";
-
-document.getElementById("arrowBtn").style.background =
-(arrowMode) ? "#ffff66" : "#ffffff";
+drawAll();
 
 }
 
-/* ================= BUTTONS ================= */
+document.body.appendChild(canvas);
+
+window.addEventListener("resize", resizeCanvas);
+window.addEventListener("scroll", resizeCanvas);
+setTimeout(resizeCanvas,300);
+
+/* =============================
+   ACTIVE BUTTONS
+============================= */
+
+function refreshButtons(){
+
+buttons.forEach(btn=>{
+btn.style.background = "#2c2c2c";
+});
+
+document.getElementById("usBtn").style.background =
+(currentTeam=="us") ? "#2d8cff" : "#2c2c2c";
+
+document.getElementById("enemyBtn").style.background =
+(currentTeam=="enemy") ? "#ff4444" : "#2c2c2c";
+
+document.getElementById("arrowBtn").style.background =
+(arrowMode) ? "#e0a000" : "#2c2c2c";
+
+}
+
+/* =============================
+   BUTTON ACTIONS
+============================= */
 
 document.getElementById("usBtn").onclick = function(){
 
 currentTeam = "us";
-currentColor = "#0000ff";
+currentColor = "#2d8cff";
 arrowMode = false;
 
-document.getElementById("colorPick").value = "#0000ff";
+document.getElementById("colorPick").value = currentColor;
 
 refreshButtons();
 
@@ -119,10 +145,10 @@ refreshButtons();
 document.getElementById("enemyBtn").onclick = function(){
 
 currentTeam = "enemy";
-currentColor = "#ff0000";
+currentColor = "#ff4444";
 arrowMode = false;
 
-document.getElementById("colorPick").value = "#ff0000";
+document.getElementById("colorPick").value = currentColor;
 
 refreshButtons();
 
@@ -152,7 +178,7 @@ drawAll();
 
 document.getElementById("saveBtn").onclick = function(){
 
-localStorage.setItem("minimapSave",JSON.stringify({
+localStorage.setItem("minimapSave", JSON.stringify({
 tanks:tanks,
 arrows:arrows
 }));
@@ -178,7 +204,9 @@ drawAll();
 
 };
 
-/* ================= DRAW ================= */
+/* =============================
+   DRAW ALL
+============================= */
 
 function drawAll(){
 
@@ -186,7 +214,7 @@ ctx.clearRect(0,0,canvas.width,canvas.height);
 
 /* GRID */
 
-ctx.strokeStyle = "rgba(255,255,255,0.22)";
+ctx.strokeStyle = "rgba(255,255,255,0.20)";
 ctx.lineWidth = 1;
 
 for(let x=0;x<=canvas.width;x+=size){
@@ -205,7 +233,7 @@ ctx.stroke();
 
 /* COORDS */
 
-ctx.fillStyle = "red";
+ctx.fillStyle = "#ff5555";
 ctx.font = fontSize + "px Arial";
 
 let letters = "ABCDEFGHIJK";
@@ -236,26 +264,29 @@ ctx.fill();
 ctx.strokeStyle = "black";
 ctx.stroke();
 
+/* NAME */
+
 ctx.font = "10px Arial";
 
-let text = t.name;
-let width = ctx.measureText(text).width;
+let width = ctx.measureText(t.name).width;
 
 ctx.fillStyle = "rgba(0,0,0,0.75)";
 ctx.fillRect(t.x+10,t.y-18,width+8,14);
 
-ctx.lineWidth = 2;
 ctx.strokeStyle = "black";
-ctx.strokeText(text,t.x+13,t.y-8);
+ctx.lineWidth = 2;
+ctx.strokeText(t.name,t.x+13,t.y-8);
 
 ctx.fillStyle = "yellow";
-ctx.fillText(text,t.x+13,t.y-8);
+ctx.fillText(t.name,t.x+13,t.y-8);
 
 }
 
 }
 
-/* ================= ARROW ================= */
+/* =============================
+   DRAW ARROW
+============================= */
 
 function drawArrow(x1,y1,x2,y2,color){
 
@@ -271,8 +302,8 @@ let angle = Math.atan2(y2-y1,x2-x1);
 
 ctx.beginPath();
 ctx.moveTo(x2,y2);
-ctx.lineTo(x2-12*Math.cos(angle-0.4),y2-12*Math.sin(angle-0.4));
-ctx.lineTo(x2-12*Math.cos(angle+0.4),y2-12*Math.sin(angle+0.4));
+ctx.lineTo(x2-12*Math.cos(angle-0.4), y2-12*Math.sin(angle-0.4));
+ctx.lineTo(x2-12*Math.cos(angle+0.4), y2-12*Math.sin(angle+0.4));
 ctx.closePath();
 
 ctx.fillStyle = color;
@@ -280,7 +311,9 @@ ctx.fill();
 
 }
 
-/* ================= FIND ================= */
+/* =============================
+   FIND TANK
+============================= */
 
 function getTank(x,y){
 
@@ -299,7 +332,9 @@ return null;
 
 }
 
-/* ================= CLICK ================= */
+/* =============================
+   CLICK
+============================= */
 
 canvas.onclick = function(e){
 
@@ -307,6 +342,8 @@ let rect = canvas.getBoundingClientRect();
 
 let x = e.clientX - rect.left;
 let y = e.clientY - rect.top;
+
+/* ARROW MODE */
 
 if(arrowMode){
 
@@ -336,6 +373,8 @@ return;
 
 }
 
+/* ADD TANK */
+
 let found = getTank(x,y);
 
 if(!found){
@@ -357,18 +396,20 @@ drawAll();
 
 };
 
-/* ================= DRAG ================= */
+/* =============================
+   DRAG
+============================= */
 
 canvas.onmousedown = function(e){
 
 let rect = canvas.getBoundingClientRect();
 
 selectedTank = getTank(
-e.clientX-rect.left,
-e.clientY-rect.top
+e.clientX - rect.left,
+e.clientY - rect.top
 );
 
-if(selectedTank) dragging=true;
+if(selectedTank) dragging = true;
 
 };
 
@@ -378,8 +419,8 @@ if(!dragging || !selectedTank) return;
 
 let rect = canvas.getBoundingClientRect();
 
-selectedTank.x = e.clientX-rect.left;
-selectedTank.y = e.clientY-rect.top;
+selectedTank.x = e.clientX - rect.left;
+selectedTank.y = e.clientY - rect.top;
 
 drawAll();
 
@@ -387,10 +428,12 @@ drawAll();
 
 canvas.onmouseup = function(){
 
-dragging=false;
-selectedTank=null;
+dragging = false;
+selectedTank = null;
 
 };
+
+/* START */
 
 refreshButtons();
 resizeCanvas();
