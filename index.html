@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Minimap V3</title>
+<title>Minimap V4</title>
 
 <style>
 body{
@@ -83,6 +83,12 @@ let map = document.getElementById("map");
 let canvas = document.getElementById("canvas");
 let ctx = canvas.getContext("2d");
 
+let tankImg = new Image();
+tankImg.src = "tank.png";
+
+let flagImg = new Image();
+flagImg.src = "flag.png";
+
 let mode = "us";
 let color = "#2d8cff";
 
@@ -94,64 +100,53 @@ let flags = [];
 
 let drag = null;
 let arrowStart = null;
+let selectedTank = null;
 
 map.onload = setup;
 window.onresize = setup;
 
 function setup(){
-
 canvas.width = map.clientWidth;
 canvas.height = map.clientHeight;
-
 draw();
-
 }
 
 document.getElementById("picker").oninput=function(){
 color=this.value;
 };
 
-function setUS(){mode="us";color="#2d8cff";}
-function setEnemy(){mode="enemy";color="#ff4444";}
-function setArrow(){mode="arrow";arrowStart=null;}
-function setFlag(){mode="flag";}
+function setUS(){ mode="us"; color="#2d8cff"; }
+function setEnemy(){ mode="enemy"; color="#ff4444"; }
+function setArrow(){ mode="arrow"; arrowStart=null; }
+function setFlag(){ mode="flag"; }
 
 function delLast(){
-
 if(arrows.length>0) arrows.pop();
 else if(flags.length>0) flags.pop();
 else if(tanks.length>0) tanks.pop();
-
 draw();
-
 }
 
 function saveMap(){
-
 localStorage.setItem("miniSave",JSON.stringify({
 tanks:tanks,
 arrows:arrows,
 flags:flags
 }));
-
 alert("Saved");
-
 }
 
 function loadMap(){
-
-let d=localStorage.getItem("miniSave");
-
+let d = localStorage.getItem("miniSave");
 if(!d) return;
 
-let s=JSON.parse(d);
+let s = JSON.parse(d);
 
-tanks=s.tanks||[];
-arrows=s.arrows||[];
-flags=s.flags||[];
+tanks = s.tanks || [];
+arrows = s.arrows || [];
+flags = s.flags || [];
 
 draw();
-
 }
 
 function draw(){
@@ -176,7 +171,7 @@ ctx.lineTo(canvas.width,y);
 ctx.stroke();
 }
 
-/* LETTERS */
+/* COORDS */
 
 ctx.fillStyle="red";
 ctx.font="7px Arial";
@@ -203,19 +198,30 @@ ctx.moveTo(a.x1,a.y1);
 ctx.lineTo(a.x2,a.y2);
 ctx.stroke();
 
+let ang=Math.atan2(a.y2-a.y1,a.x2-a.x1);
+
+ctx.beginPath();
+ctx.moveTo(a.x2,a.y2);
+ctx.lineTo(a.x2-12*Math.cos(ang-0.4), a.y2-12*Math.sin(ang-0.4));
+ctx.lineTo(a.x2-12*Math.cos(ang+0.4), a.y2-12*Math.sin(ang+0.4));
+ctx.closePath();
+ctx.fillStyle=a.color;
+ctx.fill();
+
 }
 
 /* FLAGS */
 
 for(let f of flags){
 
-ctx.font="28px Arial";
-ctx.fillStyle=f.color;
-ctx.fillText("🚩",f.x,f.y);
+ctx.save();
+ctx.translate(f.x,f.y);
+ctx.drawImage(flagImg,-10,-20,20,30);
+ctx.restore();
 
-ctx.font="10px Arial";
 ctx.fillStyle="yellow";
-ctx.fillText(f.name,f.x+28,f.y);
+ctx.font="10px Arial";
+ctx.fillText(f.name,f.x+14,f.y);
 
 }
 
@@ -223,13 +229,19 @@ ctx.fillText(f.name,f.x+28,f.y);
 
 for(let t of tanks){
 
-ctx.font="18px Arial";
-ctx.fillStyle=t.color;
-ctx.fillText("🛡️",t.x-8,t.y+6);
+ctx.save();
 
-ctx.font="10px Arial";
+ctx.translate(t.x,t.y);
+ctx.rotate(t.angle);
+
+ctx.globalAlpha=1;
+ctx.drawImage(tankImg,-10,-10,20,20);
+
+ctx.restore();
+
 ctx.fillStyle="yellow";
-ctx.fillText(t.name,t.x+14,t.y-8);
+ctx.font="10px Arial";
+ctx.fillText(t.name,t.x+12,t.y-8);
 
 }
 
@@ -244,15 +256,24 @@ let r=canvas.getBoundingClientRect();
 let x=e.clientX-r.left;
 let y=e.clientY-r.top;
 
+/* FLAG */
+
 if(mode=="flag"){
 
 let n=prompt("Flag name:");
 if(n==null)n="Spawn";
 
-flags.push({x:x,y:y,color:color,name:n});
+flags.push({
+x:x,
+y:y,
+name:n
+});
+
 draw();
 return;
 }
+
+/* ARROW */
 
 if(mode=="arrow"){
 
@@ -277,21 +298,23 @@ draw();
 return;
 }
 
+/* TANK */
+
 let n=prompt("Tank name:");
 if(n==null)n="";
 
 tanks.push({
 x:x,
 y:y,
-color:color,
-name:n
+name:n,
+angle:0
 });
 
 draw();
 
 };
 
-/* DRAG */
+/* SELECT + DRAG */
 
 canvas.onmousedown=function(e){
 
@@ -300,6 +323,8 @@ let r=canvas.getBoundingClientRect();
 let x=e.clientX-r.left;
 let y=e.clientY-r.top;
 
+selectedTank=null;
+
 for(let t of tanks){
 
 let dx=x-t.x;
@@ -307,6 +332,7 @@ let dy=y-t.y;
 
 if(Math.sqrt(dx*dx+dy*dy)<15){
 drag=t;
+selectedTank=t;
 return;
 }
 
@@ -329,6 +355,24 @@ draw();
 
 canvas.onmouseup=function(){
 drag=null;
+};
+
+/* ROTATE Q / E */
+
+document.onkeydown=function(e){
+
+if(!selectedTank)return;
+
+if(e.key=="q" || e.key=="Q"){
+selectedTank.angle -= 0.2;
+draw();
+}
+
+if(e.key=="e" || e.key=="E"){
+selectedTank.angle += 0.2;
+draw();
+}
+
 };
 
 </script>
