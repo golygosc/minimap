@@ -1,16 +1,338 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Minimap</title>
+<meta charset="UTF-8">
+<title>Minimap V3</title>
+
+<style>
+body{
+background:#111;
+color:white;
+text-align:center;
+font-family:Arial;
+margin:0;
+padding:0;
+}
+
+#panel{
+margin:10px;
+padding:10px;
+background:#1f1f1f;
+border:1px solid #444;
+border-radius:12px;
+display:inline-block;
+box-shadow:0 0 12px rgba(0,0,0,0.45);
+}
+
+button{
+padding:10px 16px;
+margin:4px;
+border:none;
+border-radius:8px;
+background:#2c2c2c;
+color:white;
+font-weight:bold;
+cursor:pointer;
+}
+
+button:hover{
+background:#666;
+}
+
+#mapWrap{
+position:relative;
+display:inline-block;
+}
+
+#map{
+width:900px;
+display:block;
+}
+
+#canvas{
+position:absolute;
+left:0;
+top:0;
+cursor:crosshair;
+}
+</style>
 </head>
 
-<body style="background:black; color:white; text-align:center; position:relative;">
+<body>
 
-<h1>My Minimap</h1>
+<div id="panel">
+<button onclick="setUS()">US</button>
+<button onclick="setEnemy()">ENEMY</button>
+<button onclick="setArrow()">ARROW</button>
+<button onclick="setFlag()">FLAG</button>
+<button onclick="delLast()">DELETE</button>
+<button onclick="saveMap()">SAVE</button>
+<button onclick="loadMap()">LOAD</button>
+<input type="color" id="picker" value="#2d8cff">
+</div>
 
-<img src="map.png" width="900">
+<br>
 
-<script src="grid2.js?v=2"></script>
+<div id="mapWrap">
+<img id="map" src="map.png">
+<canvas id="canvas"></canvas>
+</div>
+
+<script>
+let map = document.getElementById("map");
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+
+let mode = "us";
+let color = "#2d8cff";
+
+let size = 45;
+
+let tanks = [];
+let arrows = [];
+let flags = [];
+
+let drag = null;
+let arrowStart = null;
+
+map.onload = setup;
+window.onresize = setup;
+
+function setup(){
+
+canvas.width = map.clientWidth;
+canvas.height = map.clientHeight;
+
+draw();
+
+}
+
+document.getElementById("picker").oninput=function(){
+color=this.value;
+};
+
+function setUS(){mode="us";color="#2d8cff";}
+function setEnemy(){mode="enemy";color="#ff4444";}
+function setArrow(){mode="arrow";arrowStart=null;}
+function setFlag(){mode="flag";}
+
+function delLast(){
+
+if(arrows.length>0) arrows.pop();
+else if(flags.length>0) flags.pop();
+else if(tanks.length>0) tanks.pop();
+
+draw();
+
+}
+
+function saveMap(){
+
+localStorage.setItem("miniSave",JSON.stringify({
+tanks:tanks,
+arrows:arrows,
+flags:flags
+}));
+
+alert("Saved");
+
+}
+
+function loadMap(){
+
+let d=localStorage.getItem("miniSave");
+
+if(!d) return;
+
+let s=JSON.parse(d);
+
+tanks=s.tanks||[];
+arrows=s.arrows||[];
+flags=s.flags||[];
+
+draw();
+
+}
+
+function draw(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+/* GRID */
+
+ctx.strokeStyle="rgba(255,255,255,0.2)";
+
+for(let x=0;x<canvas.width;x+=size){
+ctx.beginPath();
+ctx.moveTo(x,0);
+ctx.lineTo(x,canvas.height);
+ctx.stroke();
+}
+
+for(let y=0;y<canvas.height;y+=size){
+ctx.beginPath();
+ctx.moveTo(0,y);
+ctx.lineTo(canvas.width,y);
+ctx.stroke();
+}
+
+/* LETTERS */
+
+ctx.fillStyle="red";
+ctx.font="7px Arial";
+
+let letters="ABCDEFGHIJK";
+
+for(let i=0;i<11;i++){
+ctx.fillText(letters[i],3,i*45+22);
+}
+
+for(let i=1;i<=20;i++){
+ctx.fillText(i,(i-1)*45+18,8);
+}
+
+/* ARROWS */
+
+for(let a of arrows){
+
+ctx.strokeStyle=a.color;
+ctx.lineWidth=3;
+
+ctx.beginPath();
+ctx.moveTo(a.x1,a.y1);
+ctx.lineTo(a.x2,a.y2);
+ctx.stroke();
+
+}
+
+/* FLAGS */
+
+for(let f of flags){
+
+ctx.font="28px Arial";
+ctx.fillStyle=f.color;
+ctx.fillText("🚩",f.x,f.y);
+
+ctx.font="10px Arial";
+ctx.fillStyle="yellow";
+ctx.fillText(f.name,f.x+28,f.y);
+
+}
+
+/* TANKS */
+
+for(let t of tanks){
+
+ctx.font="18px Arial";
+ctx.fillStyle=t.color;
+ctx.fillText("🛡️",t.x-8,t.y+6);
+
+ctx.font="10px Arial";
+ctx.fillStyle="yellow";
+ctx.fillText(t.name,t.x+14,t.y-8);
+
+}
+
+}
+
+/* CLICK */
+
+canvas.onclick=function(e){
+
+let r=canvas.getBoundingClientRect();
+
+let x=e.clientX-r.left;
+let y=e.clientY-r.top;
+
+if(mode=="flag"){
+
+let n=prompt("Flag name:");
+if(n==null)n="Spawn";
+
+flags.push({x:x,y:y,color:color,name:n});
+draw();
+return;
+}
+
+if(mode=="arrow"){
+
+if(!arrowStart){
+arrowStart={x:x,y:y};
+}else{
+
+arrows.push({
+x1:arrowStart.x,
+y1:arrowStart.y,
+x2:x,
+y2:y,
+color:color
+});
+
+arrowStart=null;
+mode="us";
+draw();
+
+}
+
+return;
+}
+
+let n=prompt("Tank name:");
+if(n==null)n="";
+
+tanks.push({
+x:x,
+y:y,
+color:color,
+name:n
+});
+
+draw();
+
+};
+
+/* DRAG */
+
+canvas.onmousedown=function(e){
+
+let r=canvas.getBoundingClientRect();
+
+let x=e.clientX-r.left;
+let y=e.clientY-r.top;
+
+for(let t of tanks){
+
+let dx=x-t.x;
+let dy=y-t.y;
+
+if(Math.sqrt(dx*dx+dy*dy)<15){
+drag=t;
+return;
+}
+
+}
+
+};
+
+canvas.onmousemove=function(e){
+
+if(!drag)return;
+
+let r=canvas.getBoundingClientRect();
+
+drag.x=e.clientX-r.left;
+drag.y=e.clientY-r.top;
+
+draw();
+
+};
+
+canvas.onmouseup=function(){
+drag=null;
+};
+
+</script>
 
 </body>
 </html>
+
