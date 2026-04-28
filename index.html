@@ -1,61 +1,56 @@
 <!DOCTYPE html>
-<html>
+<html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Minimap Clean</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Minimap</title>
 
 <style>
 body{
+margin:0;
 background:#111;
 color:white;
-text-align:center;
 font-family:Arial;
-margin:0;
-padding:0;
+text-align:center;
+}
+
+h1{
+margin:15px 0 10px;
 }
 
 #panel{
-margin:10px;
-padding:10px;
-background:#1f1f1f;
-border:1px solid #444;
-border-radius:12px;
-display:inline-block;
+margin-bottom:10px;
 }
 
-button{
-padding:10px 14px;
-margin:4px;
+button, select{
+padding:8px 12px;
+margin:3px;
 border:none;
-border-radius:8px;
-background:#2c2c2c;
-color:white;
+border-radius:6px;
 font-weight:bold;
 cursor:pointer;
+background:white;
+transition:0.2s;
 }
 
-button:hover{
-background:#666;
+button:hover,
+select:hover{
+background:#9e9e9e;
 }
 
 .active{
-background:#0a84ff !important;
+background:#66ccff !important;
+color:black;
 }
 
-#mapWrap{
+#wrap{
 position:relative;
 display:inline-block;
+margin-bottom:20px;
 }
 
-#map{
-width:900px;
-display:block;
-}
-
-#canvas{
-position:absolute;
-left:0;
-top:0;
+canvas{
+background:#000;
 cursor:crosshair;
 }
 </style>
@@ -63,346 +58,283 @@ cursor:crosshair;
 
 <body>
 
+<h1>My Minimap</h1>
+
 <div id="panel">
+
 <button id="usBtn">US</button>
 <button id="enemyBtn">ENEMY</button>
-<button id="flagBtn">FLAG</button>
 <button id="arrowBtn">ARROW</button>
-<button id="deleteBtn">DELETE</button>
+<button id="flagBtn">FLAG</button>
+<button id="deleteBtn">DELETE LAST</button>
 <button id="saveBtn">SAVE</button>
 <button id="loadBtn">LOAD</button>
-<input type="color" id="picker" value="#2d8cff">
+
+<select id="mapSelect">
+<option value="map.png">MAP 1</option>
+<option value="map2.png">MAP 2</option>
+<option value="map3.png">MAP 3</option>
+<option value="map4.png">MAP 4</option>
+<option value="map5.png">MAP 5</option>
+</select>
+
 </div>
 
-<br>
-
-<div id="mapWrap">
-<img id="map" src="map.png">
-<canvas id="canvas"></canvas>
+<div id="wrap">
+<canvas id="cv"></canvas>
 </div>
 
 <script>
-let map=document.getElementById("map");
-let canvas=document.getElementById("canvas");
-let ctx=canvas.getContext("2d");
+const canvas=document.getElementById("cv");
+const ctx=canvas.getContext("2d");
+
+const img=new Image();
+img.src="map.png";
 
 let mode="us";
-let currentColor="#2d8cff";
-
-let size=45;
 
 let tanks=[];
-let flags=[];
 let arrows=[];
+let flags=[];
 
-let dragTank=null;
 let arrowStart=null;
 
-map.onload=setup;
-window.onresize=setup;
+const grid=45;
+const leftOffset=8;
+const topOffset=8;
 
-function setup(){
-canvas.width=map.clientWidth;
-canvas.height=map.clientHeight;
-draw();
-}
-
-function setMode(m){
-mode=m;
-arrowStart=null;
-refreshUI();
-}
-
-function refreshUI(){
+function setActive(id){
 
 document.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
 
-if(mode=="us") usBtn.classList.add("active");
-if(mode=="enemy") enemyBtn.classList.add("active");
-if(mode=="flag") flagBtn.classList.add("active");
-if(mode=="arrow") arrowBtn.classList.add("active");
+if(id) document.getElementById(id).classList.add("active");
+}
+
+setActive("usBtn");
+
+document.getElementById("usBtn").onclick=()=>{
+mode="us";
+setActive("usBtn");
+};
+
+document.getElementById("enemyBtn").onclick=()=>{
+mode="enemy";
+setActive("enemyBtn");
+};
+
+document.getElementById("arrowBtn").onclick=()=>{
+mode="arrow";
+setActive("arrowBtn");
+};
+
+document.getElementById("flagBtn").onclick=()=>{
+mode="flag";
+setActive("flagBtn");
+};
+
+document.getElementById("deleteBtn").onclick=()=>{
+if(tanks.length)tanks.pop();
+else if(flags.length)flags.pop();
+else if(arrows.length)arrows.pop();
+};
+
+document.getElementById("saveBtn").onclick=()=>{
+localStorage.setItem("mini_tanks",JSON.stringify(tanks));
+localStorage.setItem("mini_flags",JSON.stringify(flags));
+localStorage.setItem("mini_arrows",JSON.stringify(arrows));
+alert("Saved");
+};
+
+document.getElementById("loadBtn").onclick=()=>{
+tanks=JSON.parse(localStorage.getItem("mini_tanks")||"[]");
+flags=JSON.parse(localStorage.getItem("mini_flags")||"[]");
+arrows=JSON.parse(localStorage.getItem("mini_arrows")||"[]");
+};
+
+document.getElementById("mapSelect").onchange=function(){
+img.src=this.value;
+tanks=[];
+flags=[];
+arrows=[];
+};
+
+canvas.onclick=(e)=>{
+
+const rect=canvas.getBoundingClientRect();
+
+const x=e.clientX-rect.left;
+const y=e.clientY-rect.top;
+
+if(mode==="us"){
+const name=prompt("Tank name:");
+if(!name)return;
+tanks.push({
+x,y,
+color:"#1e90ff",
+name
+});
+}
+
+else if(mode==="enemy"){
+const name=prompt("Tank name:");
+if(!name)return;
+tanks.push({
+x,y,
+color:"#ff3333",
+name
+});
+}
+
+else if(mode==="flag"){
+const name=prompt("Spawn name:");
+if(!name)return;
+
+const color=prompt("Color? red/blue/green/yellow","red") || "red";
+
+flags.push({
+x,y,
+name,
+color
+});
+}
+
+else if(mode==="arrow"){
+
+if(!arrowStart){
+arrowStart={x,y};
+}else{
+arrows.push({
+x1:arrowStart.x,
+y1:arrowStart.y,
+x2:x,
+y2:y,
+color:"#ffffff"
+});
+arrowStart=null;
+mode="us";
+setActive("usBtn");
+}
 
 }
 
-usBtn.onclick=function(){
-currentColor="#2d8cff";
-setMode("us");
-picker.value=currentColor;
 };
 
-enemyBtn.onclick=function(){
-currentColor="#ff4444";
-setMode("enemy");
-picker.value=currentColor;
-};
+function drawGrid(){
 
-flagBtn.onclick=function(){
-setMode("flag");
-};
+ctx.strokeStyle="rgba(255,255,255,0.15)";
+ctx.lineWidth=1;
 
-arrowBtn.onclick=function(){
-setMode("arrow");
-};
-
-picker.oninput=function(){
-currentColor=this.value;
-};
-
-deleteBtn.onclick=function(){
-
-if(arrows.length>0) arrows.pop();
-else if(flags.length>0) flags.pop();
-else if(tanks.length>0) tanks.pop();
-
-draw();
-
-};
-
-saveBtn.onclick=function(){
-
-localStorage.setItem("miniSave",JSON.stringify({
-tanks:tanks,
-flags:flags,
-arrows:arrows
-}));
-
-};
-
-loadBtn.onclick=function(){
-
-let d=localStorage.getItem("miniSave");
-if(!d)return;
-
-let s=JSON.parse(d);
-
-tanks=s.tanks||[];
-flags=s.flags||[];
-arrows=s.arrows||[];
-
-draw();
-
-};
-
-function draw(){
-
-ctx.clearRect(0,0,canvas.width,canvas.height);
-
-/* GRID */
-
-ctx.strokeStyle="rgba(255,255,255,0.18)";
-
-for(let x=0;x<=canvas.width;x+=size){
+for(let x=0;x<=canvas.width;x+=grid){
 ctx.beginPath();
-ctx.moveTo(x,0);
-ctx.lineTo(x,canvas.height);
+ctx.moveTo(x+leftOffset,0);
+ctx.lineTo(x+leftOffset,canvas.height);
 ctx.stroke();
 }
 
-for(let y=0;y<=canvas.height;y+=size){
+for(let y=0;y<=canvas.height;y+=grid){
 ctx.beginPath();
-ctx.moveTo(0,y);
-ctx.lineTo(canvas.width,y);
+ctx.moveTo(0,y+topOffset);
+ctx.lineTo(canvas.width,y+topOffset);
 ctx.stroke();
 }
-
-/* LETTERS */
 
 ctx.fillStyle="#ff5555";
-ctx.font="7px Arial";
+ctx.font="12px Arial";
 
-let letters="ABCDEFGHIJK";
+for(let i=0;i<20;i++){
+ctx.fillText(i+1,grid*i+22,18);
+}
+
+const letters="ABCDEFGHIJK";
 
 for(let i=0;i<11;i++){
-ctx.fillText(letters[i],3,i*45+22);
+ctx.fillText(letters[i],8,grid*i+28);
 }
 
-for(let i=1;i<=20;i++){
-ctx.fillText(i,(i-1)*45+18,8);
 }
 
-/* ARROWS */
+function drawTank(t){
 
-for(let a of arrows){
+ctx.beginPath();
+ctx.fillStyle=t.color;
+ctx.arc(t.x,t.y,10,0,Math.PI*2);
+ctx.fill();
+
+ctx.strokeStyle="black";
+ctx.lineWidth=2;
+ctx.stroke();
+
+ctx.fillStyle="#ff4444";
+ctx.font="bold 11px Arial";
+ctx.fillText(t.name,t.x+12,t.y-10);
+}
+
+function drawFlag(f){
+
+ctx.fillStyle="#777";
+ctx.fillRect(f.x-2,f.y-18,4,20);
+
+ctx.beginPath();
+ctx.moveTo(f.x+2,f.y-18);
+ctx.lineTo(f.x+18,f.y-12);
+ctx.lineTo(f.x+2,f.y-6);
+ctx.closePath();
+
+ctx.fillStyle=f.color;
+ctx.fill();
+
+ctx.fillStyle="#ff4444";
+ctx.font="bold 11px Arial";
+ctx.fillText(f.name,f.x+22,f.y-8);
+}
+
+function drawArrow(a){
 
 ctx.strokeStyle=a.color;
-ctx.lineWidth=3;
+ctx.lineWidth=4;
 
 ctx.beginPath();
 ctx.moveTo(a.x1,a.y1);
 ctx.lineTo(a.x2,a.y2);
 ctx.stroke();
 
-let ang=Math.atan2(a.y2-a.y1,a.x2-a.x1);
+const ang=Math.atan2(a.y2-a.y1,a.x2-a.x1);
 
 ctx.beginPath();
 ctx.moveTo(a.x2,a.y2);
-ctx.lineTo(a.x2-12*Math.cos(ang-0.4),a.y2-12*Math.sin(ang-0.4));
-ctx.lineTo(a.x2-12*Math.cos(ang+0.4),a.y2-12*Math.sin(ang+0.4));
+ctx.lineTo(
+a.x2-15*Math.cos(ang-0.4),
+a.y2-15*Math.sin(ang-0.4)
+);
+ctx.lineTo(
+a.x2-15*Math.cos(ang+0.4),
+a.y2-15*Math.sin(ang+0.4)
+);
 ctx.closePath();
-
 ctx.fillStyle=a.color;
 ctx.fill();
-
 }
 
-/* FLAGS */
+function loop(){
 
-for(let f of flags){
+ctx.clearRect(0,0,canvas.width,canvas.height);
 
-ctx.fillStyle=f.color;
+ctx.drawImage(img,0,0,canvas.width,canvas.height);
 
-/* maszt */
-ctx.fillRect(f.x,f.y-18,3,22);
+drawGrid();
 
-/* flaga */
-ctx.beginPath();
-ctx.moveTo(f.x+3,f.y-18);
-ctx.lineTo(f.x+18,f.y-12);
-ctx.lineTo(f.x+3,f.y-6);
-ctx.closePath();
-ctx.fill();
+flags.forEach(drawFlag);
+arrows.forEach(drawArrow);
+tanks.forEach(drawTank);
 
-/* base */
-ctx.fillRect(f.x-4,f.y+3,12,4);
-
-ctx.fillStyle="#ff4d4d";
-ctx.font="10px Arial";
-ctx.fillText(f.name,f.x+22,f.y);
-
+requestAnimationFrame(loop);
 }
 
-/* TANKS */
-
-for(let t of tanks){
-
-ctx.beginPath();
-ctx.arc(t.x,t.y,8,0,Math.PI*2);
-ctx.fillStyle=t.color;
-ctx.fill();
-
-ctx.strokeStyle="black";
-ctx.stroke();
-
-ctx.fillStyle="#ff4d4d";
-ctx.font="10px Arial";
-ctx.fillText(t.name,t.x+12,t.y-8);
-
-}
-
-}
-
-/* CLICK */
-
-canvas.onclick=function(e){
-
-let r=canvas.getBoundingClientRect();
-
-let x=e.clientX-r.left;
-let y=e.clientY-r.top;
-
-/* FLAG */
-
-if(mode=="flag"){
-
-let n=prompt("Flag name:");
-if(n==null)n="Spawn";
-
-flags.push({
-x:x,
-y:y,
-name:n,
-color:currentColor
-});
-
-draw();
-return;
-}
-
-/* ARROW */
-
-if(mode=="arrow"){
-
-if(!arrowStart){
-
-arrowStart={x:x,y:y};
-
-}else{
-
-arrows.push({
-x1:arrowStart.x,
-y1:arrowStart.y,
-x2:x,
-y2:y,
-color:currentColor
-});
-
-arrowStart=null;
-draw();
-
-}
-
-return;
-}
-
-/* TANK */
-
-let n=prompt("Tank name:");
-if(n==null)n="";
-
-tanks.push({
-x:x,
-y:y,
-name:n,
-color:currentColor
-});
-
-draw();
-
+img.onload=()=>{
+canvas.width=img.width;
+canvas.height=img.height;
+loop();
 };
-
-/* DRAG */
-
-canvas.onmousedown=function(e){
-
-let r=canvas.getBoundingClientRect();
-
-let x=e.clientX-r.left;
-let y=e.clientY-r.top;
-
-dragTank=null;
-
-for(let t of tanks){
-
-let dx=x-t.x;
-let dy=y-t.y;
-
-if(Math.sqrt(dx*dx+dy*dy)<10){
-dragTank=t;
-return;
-}
-
-}
-
-};
-
-canvas.onmousemove=function(e){
-
-if(!dragTank)return;
-
-let r=canvas.getBoundingClientRect();
-
-dragTank.x=e.clientX-r.left;
-dragTank.y=e.clientY-r.top;
-
-draw();
-
-};
-
-canvas.onmouseup=function(){
-dragTank=null;
-};
-
-refreshUI();
 </script>
 
 </body>
